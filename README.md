@@ -3,7 +3,7 @@
 A polished camera web UI that uses [Frigate](https://frigate.video) as its backend.
 Lookout logs in to Frigate server-side, so camera and Frigate credentials never reach the browser or a TV app.
 
-**Status:** milestone M2 (camera grid UI in `web/`).
+**Status:** milestones M3/M4 (events, clips, live video) written, awaiting real-hardware test.
 
 ## Run locally (Windows PowerShell)
 
@@ -38,6 +38,9 @@ Open <http://localhost:5173>. The UI forwards `/api` to the backend on port 8080
 | `GET /health` | Frigate login check, version and camera names (no token needed) |
 | `GET /api/cameras` | `{ cameras: [{ name, label }] }` in Frigate's order |
 | `GET /api/cameras/:name/snapshot.jpg?h=480` | Latest still image (height 120-1080), cached for 1 second |
+| `GET /api/events?limit=60&camera=` | Recent detection events |
+| `GET /api/events/:id/thumbnail.jpg`, `snapshot.jpg`, `clip.mp4` | Event media (clip supports Range/seeking) |
+| `WS /api/cameras/:name/live` | Live video (fragmented MP4 over WebSocket, tunnelled to Frigate) |
 
 If `LOOKOUT_TOKEN` is set, `/api/*` needs `Authorization: Bearer <token>` or `?token=<token>`.
 

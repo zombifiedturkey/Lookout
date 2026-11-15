@@ -17,9 +17,9 @@ Lookout logs in as a viewer account, caches snapshots for 1-2 s, and serves the 
 ## Milestones
 - **M0** Backend skeleton and `/health` (reports camera names). *Done, verified against real Frigate.*
 - **M1** Snapshot proxy: `/api/cameras`, `/api/cameras/:name/snapshot.jpg` with short cache. *Done, verified against real Frigate.*
-- **M2** React + Vite + Tailwind UI in `web/`: 2x2 grid (snapshots every 2 s), click for full-screen (1 s). *Written; needs testing.*
-- **M3** Event timeline with thumbnails (`/api/events`).
-- **M4** Clip playback for an event.
+- **M2** React + Vite + Tailwind UI in `web/`: 2x2 grid (snapshots every 2 s), click for full-screen (1 s). *Done, verified on real hardware.*
+- **M3** Event timeline with thumbnails (`/api/events`), Events tab. *Written; backend tested on a mock, needs testing on real Frigate.*
+- **M4** Clip playback for an event, plus live video in full-screen (WebSocket tunnel to Frigate's go2rtc, MSE player, falls back to stills). *Written; needs testing.*
 - **M5** Docker image built by GitHub Actions (`:edge`), Unraid template.
 - **M6** Real live video via Frigate's go2rtc; Android TV app; Shield launcher widget; notifications.
 

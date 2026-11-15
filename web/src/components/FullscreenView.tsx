@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Camera } from "../api";
 import { useSnapshot } from "../hooks/useSnapshot";
 import StatusDot from "./StatusDot";
+import LiveVideo, { type LiveState } from "./LiveVideo";
 
 interface Props {
   cameras: Camera[];
@@ -12,7 +13,13 @@ interface Props {
 
 export default function FullscreenView({ cameras, index, onChange, onClose }: Props) {
   const camera = cameras[index];
-  const { src, status } = useSnapshot(camera.name, 1080, 1000);
+  const [liveState, setLiveState] = useState<LiveState>("connecting");
+  const useStill = liveState === "failed";
+  // stills only poll when live video is not working
+  const { src, status: stillStatus } = useSnapshot(camera.name, 1080, 1000, useStill);
+  const status = useStill ? stillStatus : liveState === "live" ? "live" : "connecting";
+
+  useEffect(() => setLiveState("connecting"), [camera.name]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -63,13 +70,30 @@ export default function FullscreenView({ cameras, index, onChange, onClose }: Pr
         </div>
 
         <div className="relative min-h-0 flex-1 bg-black/40">
-          {src ? (
-            <img
-              src={src}
-              alt={camera.label}
-              className={`mx-auto max-h-[75vh] w-full object-contain ${status === "offline" ? "opacity-40 grayscale" : ""}`}
-              draggable={false}
-            />
+          {!useStill ? (
+            <>
+              <LiveVideo
+                key={camera.name}
+                camera={camera.name}
+                onState={setLiveState}
+                className="mx-auto max-h-[75vh] w-full bg-black object-contain"
+              />
+              {liveState === "connecting" && (
+                <div className="absolute inset-0 flex items-center justify-center text-white/60">Connecting live…</div>
+              )}
+            </>
+          ) : src ? (
+            <>
+              <img
+                src={src}
+                alt={camera.label}
+                className={`mx-auto max-h-[75vh] w-full object-contain ${status === "offline" ? "opacity-40 grayscale" : ""}`}
+                draggable={false}
+              />
+              <div className="absolute bottom-3 left-3 rounded-full border border-white/15 bg-black/35 px-3 py-1 text-xs backdrop-blur-xl">
+                Live video unavailable, showing stills
+              </div>
+            </>
           ) : (
             <div className="flex aspect-video items-center justify-center text-white/50">Connecting…</div>
           )}

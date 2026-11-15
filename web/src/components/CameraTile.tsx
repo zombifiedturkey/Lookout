@@ -22,13 +22,13 @@ export default function CameraTile({ camera, onOpen }: { camera: Camera; onOpen:
         <div className="flex h-full w-full items-center justify-center text-sm text-white/50">Connecting…</div>
       )}
 
-      <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-3 py-1.5 text-sm font-medium backdrop-blur-xl">
+      <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-3 py-1.5 text-sm font-medium backdrop-blur-xl">
         <StatusDot status={status} />
         {camera.label}
       </div>
 
       {status === "offline" && (
-        <div className="absolute inset-x-0 bottom-3 text-center text-xs text-rose-200">Can't reach camera</div>
+        <div className="absolute inset-x-0 top-3 text-center text-xs text-rose-200">Can't reach camera</div>
       )}
     </button>
   );
