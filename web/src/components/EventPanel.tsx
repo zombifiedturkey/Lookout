@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { eventClipUrl, eventSnapshotUrl, type EventItem } from "../api";
 import { dayLabel, duration, eventTitle, timeOfDay } from "../lib/format";
+import ClipPlayer from "./ClipPlayer";
 
 interface Props {
   event: EventItem;
@@ -61,15 +62,11 @@ export default function EventPanel({ event, onClose }: Props) {
 
         <div className="min-h-0 flex-1 bg-black/40">
           {showClip ? (
-            <video
+            <ClipPlayer
               key={event.id}
               src={eventClipUrl(event.id)}
               poster={event.hasSnapshot ? eventSnapshotUrl(event.id) : undefined}
-              controls
-              autoPlay
-              playsInline
               onError={() => setClipFailed(true)}
-              className="mx-auto max-h-[75vh] w-full bg-black object-contain"
             />
           ) : event.hasSnapshot ? (
             <img src={eventSnapshotUrl(event.id)} alt="" className="mx-auto max-h-[75vh] w-full object-contain" />

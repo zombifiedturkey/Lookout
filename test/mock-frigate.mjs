@@ -17,6 +17,7 @@ const REVIEWS = [
   { id: "1731668000.0-r2", camera: "driveway", start_time: 1731668000, end_time: null, severity: "detection", has_been_reviewed: true, thumb_path: "x", data: { detections: ["1731668000.000001-bbb222"], objects: ["car"], zones: [] } },
 ];
 let viewedCalls = [];
+let clipHits = 0;
 const authed = (req) => (req.headers.cookie ?? "").includes(`frigate_token=${TOKEN}`);
 
 const server = http.createServer((req, res) => {
@@ -33,6 +34,7 @@ const server = http.createServer((req, res) => {
       res.writeHead(401);
       return res.end("{}");
     }
+    if (url === "/__clips") { res.writeHead(200); return res.end(String(clipHits)); }
     if (url === "/__viewed") { res.writeHead(200); return res.end(JSON.stringify(viewedCalls)); }
     if (url === "/__hits") { res.writeHead(200); return res.end(String(mockHits)); }
     if (!authed(req)) { res.writeHead(401); return res.end(); }
@@ -79,6 +81,7 @@ const server = http.createServer((req, res) => {
     if (url === "/__viewed") { res.writeHead(200); return res.end(JSON.stringify(viewedCalls)); }
     const rclip = url.match(/^\/api\/([a-z_]+)\/start\/(\d+)\/end\/(\d+)\/clip\.mp4$/);
     if (rclip) {
+      clipHits++;
       res.writeHead(200, { "Content-Type": "video/mp4", "Content-Length": CLIP.length, "X-Mock-Range": `${rclip[1]} ${rclip[2]}-${rclip[3]}` });
       return res.end(CLIP);
     }

@@ -3,9 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { config, missingConfig } from "./config.js";
-import { frigate, frigateJson, frigateStream, frigateUpgrade, FrigateError } from "./frigate.js";
+import { frigate, frigateJson, frigateUpgrade, FrigateError } from "./frigate.js";
 import { listCameras, getSnapshot, clampHeight, liveStreamName } from "./cameras.js";
 import { listEvents, clampLimit } from "./events.js";
+import { serveClip } from "./clips.js";
 import { listReview, clampHours, reviewThumbnail, reviewClipPath, markViewed } from "./review.js";
 
 function send(res: http.ServerResponse, status: number, body: unknown) {
@@ -210,7 +211,7 @@ const server = http.createServer(async (req, res) => {
       if (ev && EVENT_ID.test(ev[1])) {
         const id = encodeURIComponent(ev[1]);
         if (ev[2] === "clip.mp4") {
-          return await frigateStream(`/api/events/${id}/clip.mp4`, req.headers.range, res);
+          return await serveClip(`/api/events/${id}/clip.mp4`, req.headers.range, res);
         }
         return await sendFrigateImage(res, `/api/events/${id}/${ev[2]}`, 3600);
       }
@@ -227,7 +228,7 @@ const server = http.createServer(async (req, res) => {
           return send(res, 200, { ok: true });
         }
         if (rv[2] === "clip.mp4") {
-          return await frigateStream(await reviewClipPath(rv[1]), req.headers.range, res);
+          return await serveClip(await reviewClipPath(rv[1]), req.headers.range, res);
         }
         const t = await reviewThumbnail(rv[1]);
         if (!t) return send(res, 404, { error: "No thumbnail for this item" });

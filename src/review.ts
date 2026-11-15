@@ -100,7 +100,8 @@ export async function reviewThumbnail(id: string): Promise<{ type: string; body:
 export async function reviewClipPath(id: string): Promise<string> {
   const r = await getReview(id);
   const start = Math.floor(r.start_time);
-  const end = Math.ceil(r.end_time ?? Date.now() / 1000);
+  // An item still in progress has no end yet: round "now" up to 15 s so repeated range requests ask for the same clip.
+  const end = Math.ceil(r.end_time ?? Math.ceil(Date.now() / 15000) * 15);
   return `/api/${encodeURIComponent(r.camera)}/start/${start}/end/${Math.max(end, start + 1)}/clip.mp4`;
 }
 

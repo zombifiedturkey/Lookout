@@ -71,12 +71,13 @@ async function login(): Promise<void> {
 // Non-GET requests also carry the CSRF header newer Frigate versions require.
 export async function frigate(
   path: string,
-  opts: { method?: string; body?: string; headers?: Record<string, string> } = {},
+  opts: { method?: string; body?: string; headers?: Record<string, string>; timeoutMs?: number } = {},
 ): Promise<FrigateResponse> {
   const send = () =>
     rawRequest(path, {
       method: opts.method,
       body: opts.body,
+      timeoutMs: opts.timeoutMs,
       headers: {
         ...(opts.method && opts.method !== "GET" ? { "X-CSRF-TOKEN": "1" } : {}),
         ...opts.headers,

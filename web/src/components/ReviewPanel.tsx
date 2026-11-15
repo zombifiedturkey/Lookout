@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { reviewClipUrl, reviewThumbUrl, type ReviewItem } from "../api";
 import { dateTime, objectsTitle } from "../lib/format";
+import ClipPlayer from "./ClipPlayer";
 
 interface Props {
   item: ReviewItem;
@@ -51,15 +52,11 @@ export default function ReviewPanel({ item, onClose }: Props) {
               <p className="px-5 py-2 text-sm text-rose-200">The clip couldn't be played, showing the preview image instead.</p>
             </>
           ) : (
-            <video
+            <ClipPlayer
               key={item.id}
               src={reviewClipUrl(item.id)}
               poster={reviewThumbUrl(item.id)}
-              controls
-              autoPlay
-              playsInline
               onError={() => setClipFailed(true)}
-              className="mx-auto max-h-[75vh] w-full bg-black object-contain"
             />
           )}
         </div>
