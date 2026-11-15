@@ -5,6 +5,7 @@ import CameraTile from "./components/CameraTile";
 import FullscreenView from "./components/FullscreenView";
 import EventsView from "./components/EventsView";
 import ReviewView from "./components/ReviewView";
+import SavedView from "./components/SavedView";
 import { usePageVisible } from "./hooks/usePageVisible";
 
 export default function App() {
@@ -32,7 +33,7 @@ function Main({ onSignOut }: { onSignOut: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<number | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const [tab, setTab] = useState<"cameras" | "review" | "events">("cameras");
+  const [tab, setTab] = useState<"cameras" | "review" | "events" | "saved">("cameras");
   const pageVisible = usePageVisible();
 
   useEffect(() => {
@@ -53,7 +54,7 @@ function Main({ onSignOut }: { onSignOut: () => void }) {
       <header className="flex flex-wrap items-center justify-between gap-3 sm:h-11 sm:flex-nowrap">
         <img src="/lookout-logo.png" alt="Lookout" className="h-9 w-auto select-none sm:h-11" draggable={false} />
         <nav className="flex gap-2">
-          {(["cameras", "review", "events"] as const).map((t) => (
+          {(["cameras", "review", "events", "saved"] as const).map((t) => (
             <button
               key={t}
               type="button"
@@ -77,6 +78,7 @@ function Main({ onSignOut }: { onSignOut: () => void }) {
 
       {tab === "review" && <ReviewView />}
       {tab === "events" && <EventsView />}
+      {tab === "saved" && <SavedView />}
 
       {tab === "cameras" && error && (
         <div className="rounded-3xl border border-rose-400/30 bg-rose-500/10 p-5 backdrop-blur-xl">

@@ -30,7 +30,7 @@ function evict() {
   }
 }
 
-async function getClip(path: string): Promise<Cached> {
+export async function getClip(path: string): Promise<Cached> {
   const hit = cache.get(path);
   if (hit && Date.now() - hit.at < TTL_MS) return hit;
   const pending = inflight.get(path);

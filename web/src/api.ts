@@ -137,3 +137,57 @@ export async function markReviewViewed(id: string): Promise<void> {
     /* ignore */
   }
 }
+
+export interface SavedClip {
+  id: string;
+  name: string;
+  camera: string;
+  cameraLabel: string;
+  label: string;
+  recordedAt: number;
+  duration: number;
+  createdAt: number;
+  size: number;
+}
+
+export interface SaveClipInput {
+  kind: "review" | "event";
+  id: string;
+  start: number;
+  end: number;
+  name: string;
+  camera: string;
+  cameraLabel: string;
+  label: string;
+  recordedAt: number;
+}
+
+async function errorText(res: Response): Promise<string> {
+  const data = (await res.json().catch(() => ({}))) as { error?: string };
+  return data.error ?? `Lookout returned HTTP ${res.status}`;
+}
+
+export async function fetchSaved(signal?: AbortSignal): Promise<SavedClip[]> {
+  const res = await fetch("/api/saved", { headers: authHeaders(), signal });
+  if (!res.ok) throw new Error(await errorText(res));
+  return ((await res.json()) as { items: SavedClip[] }).items;
+}
+
+export async function saveClip(input: SaveClipInput): Promise<SavedClip> {
+  const res = await fetch("/api/saved", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await errorText(res));
+  return ((await res.json()) as { item: SavedClip }).item;
+}
+
+export async function deleteSaved(id: string): Promise<void> {
+  const res = await fetch(`/api/saved/${encodeURIComponent(id)}`, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) throw new Error(await errorText(res));
+}
+
+export const savedThumbUrl = (id: string) => withToken(`/api/saved/${encodeURIComponent(id)}/thumbnail.jpg`);
+export const savedClipUrl = (id: string, download = false) =>
+  withToken(`/api/saved/${encodeURIComponent(id)}/clip.mp4${download ? "?download=1" : ""}`);

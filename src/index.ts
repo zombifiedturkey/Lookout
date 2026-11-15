@@ -3,10 +3,11 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { config, missingConfig } from "./config.js";
-import { frigate, frigateJson, frigateUpgrade, FrigateError } from "./frigate.js";
+import { frigate, frigateJson, frigateUpgrade, FrigateError, BadRequest } from "./frigate.js";
 import { listCameras, getSnapshot, clampHeight, liveStreamName } from "./cameras.js";
 import { listEvents, clampLimit } from "./events.js";
 import { serveClip } from "./clips.js";
+import { createSaved, listSaved, deleteSaved, serveSavedFile, type SaveRequest } from "./saved.js";
 import { listReview, clampHours, reviewThumbnail, reviewClipPath, markViewed } from "./review.js";
 
 function send(res: http.ServerResponse, status: number, body: unknown) {
@@ -216,6 +217,33 @@ const server = http.createServer(async (req, res) => {
         return await sendFrigateImage(res, `/api/events/${id}/${ev[2]}`, 3600);
       }
 
+      if (url.pathname === "/api/saved") {
+        if (req.method === "GET") return send(res, 200, { items: listSaved() });
+        if (req.method === "POST") {
+          let body: SaveRequest;
+          try {
+            body = JSON.parse(await readBody(req, 16 * 1024)) as SaveRequest;
+          } catch {
+            throw new BadRequest("Bad request");
+          }
+          return send(res, 201, { item: await createSaved(body) });
+        }
+        return send(res, 405, { error: "Method not allowed" });
+      }
+
+      const sv = url.pathname.match(/^\/api\/saved\/([a-z0-9-]+)(?:\/(clip\.mp4|thumbnail\.jpg))?$/);
+      if (sv) {
+        if (req.method === "DELETE" && !sv[2]) {
+          return deleteSaved(sv[1]) ? send(res, 200, { ok: true }) : send(res, 404, { error: "Not found" });
+        }
+        if (req.method === "GET" && sv[2]) {
+          const kind = sv[2] === "clip.mp4" ? "clip" : "thumbnail";
+          if (serveSavedFile(sv[1], kind, req.headers.range, res, url.searchParams.get("download") === "1")) return;
+          return send(res, 404, { error: "Not found" });
+        }
+        return send(res, 405, { error: "Method not allowed" });
+      }
+
       if (url.pathname === "/api/review" && req.method === "GET") {
         return send(res, 200, { items: await listReview(clampHours(url.searchParams.get("hours"))) });
       }
@@ -242,7 +270,7 @@ const server = http.createServer(async (req, res) => {
     return send(res, 404, { error: "Not found" });
   } catch (e) {
     const err = e as FrigateError;
-    const status = err.status === 404 ? 404 : err instanceof FrigateError ? 502 : 500;
+    const status = err.status === 404 ? 404 : err.status === 400 ? 400 : err instanceof FrigateError ? 502 : 500;
     if (res.headersSent) return res.destroy();
     return send(res, status, { error: err.message });
   }

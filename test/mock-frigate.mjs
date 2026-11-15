@@ -1,12 +1,14 @@
 // Tiny fake Frigate for testing Lookout without a network. Not shipped in the image.
 import http from "node:http";
 import crypto from "node:crypto";
+import fs from "node:fs";
 
 const PORT = Number(process.env.MOCK_PORT ?? 8971);
 const TOKEN = "mocktoken123";
 let mockHits = 0;
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46, 0xff, 0xd9]);
-const CLIP = Buffer.alloc(1000, 7); // pretend mp4
+// Set MOCK_CLIP=/path/to/real.mp4 to serve a real video; otherwise a pretend 1000-byte file.
+const CLIP = process.env.MOCK_CLIP ? fs.readFileSync(process.env.MOCK_CLIP) : Buffer.alloc(1000, 7);
 const EVENTS = [
   { id: "1731668432.123456-aaa111", camera: "front_door", label: "person", sub_label: null, start_time: 1731668432.1, end_time: 1731668447.9, has_clip: true, has_snapshot: true, data: { top_score: 0.87 } },
   { id: "1731668000.000001-bbb222", camera: "driveway", label: "car", sub_label: null, start_time: 1731668000.0, end_time: null, has_clip: false, has_snapshot: true, top_score: 0.74 },

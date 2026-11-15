@@ -15,6 +15,12 @@ export class FrigateError extends Error {
   }
 }
 
+export class BadRequest extends FrigateError {
+  constructor(message: string) {
+    super(message, 400);
+  }
+}
+
 // Plain node http/https is used (not fetch) so the self-signed certificate
 // can be accepted for Frigate only, instead of disabling TLS checks globally.
 function rawRequest(

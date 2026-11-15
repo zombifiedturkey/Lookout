@@ -40,6 +40,7 @@ Open <http://localhost:5173>. The UI forwards `/api` to the backend on port 8080
 | `GET /api/cameras/:name/snapshot.jpg?h=480` | Latest still image (height 120-1080), cached for 1 second |
 | `GET /api/events?limit=60&camera=` | Recent detection events |
 | `GET /api/events/:id/thumbnail.jpg`, `snapshot.jpg`, `clip.mp4` | Event media (clip supports Range/seeking) |
+| `GET/POST /api/saved`, `GET /api/saved/:id/clip.mp4`, `DELETE /api/saved/:id` | Saved (trimmed) clips, kept in `LOOKOUT_DATA` (needs ffmpeg; included in the image) |
 | `WS /api/cameras/:name/live` | Live video (fragmented MP4 over WebSocket, tunnelled to Frigate) |
 
 If `LOOKOUT_TOKEN` is set, `/api/*` needs `Authorization: Bearer <token>` or `?token=<token>`.
@@ -55,3 +56,8 @@ If `LOOKOUT_TOKEN` is set, `/api/*` needs `Authorization: Bearer <token>` or `?t
 | `PORT` | Default `8080` |
 
 LAN only. Do not port-forward.
+
+## Saved clips
+
+Trimmed clips are stored by Lookout, not Frigate, so they survive Frigate's retention. In Unraid, map a host
+folder (for example `/mnt/user/appdata/lookout`) to the container path `/data`. The image includes ffmpeg.

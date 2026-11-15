@@ -10,6 +10,9 @@ export const config = {
   frigatePassword: env("FRIGATE_PASSWORD"),
   insecureTls: env("FRIGATE_INSECURE_TLS", "true").toLowerCase() === "true",
   token: env("LOOKOUT_TOKEN"),
+  // where saved (trimmed) clips are kept; map this folder to appdata in Unraid
+  dataDir: env("LOOKOUT_DATA", "./data"),
+  ffmpegPath: env("FFMPEG_PATH", "ffmpeg"),
 };
 
 export function missingConfig(): string[] {
