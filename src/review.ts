@@ -50,16 +50,18 @@ function toInfo(r: FrigateReview, labels: Map<string, string>): ReviewInfo {
 
 export async function listReview(hours: number): Promise<ReviewInfo[]> {
   const now = Math.floor(Date.now() / 1000);
-  const params = new URLSearchParams({
-    cameras: "all",
-    labels: "all",
-    zones: "all",
-    reviewed: "1", // include reviewed items; the UI decides whether to show them
-    limit: "500",
-    after: String(now - hours * 3600),
-    before: String(now + 60),
-  });
-  const [raw, cams] = await Promise.all([frigateJson<FrigateReview[]>(`/api/review?${params}`), listCameras()]);
+  const base = { limit: "500", after: String(now - hours * 3600), before: String(now + 60) };
+  // Frigate's "reviewed" flag is a filter, not an include switch: 0 returns only unreviewed items and 1 only
+  // reviewed ones. Ask for both and merge, so "show reviewed" can work.
+  const query = (reviewed: string) => new URLSearchParams({ ...base, reviewed }).toString();
+  const [unseen, seen, cams] = await Promise.all([
+    frigateJson<FrigateReview[]>(`/api/review?${query("0")}`),
+    frigateJson<FrigateReview[]>(`/api/review?${query("1")}`),
+    listCameras(),
+  ]);
+  const byId = new Map<string, FrigateReview>();
+  for (const r of [...unseen, ...seen]) byId.set(r.id, r);
+  const raw = [...byId.values()];
   remember(raw);
   const labels = new Map(cams.map((c) => [c.name, c.label]));
   return raw
@@ -118,41 +120,4 @@ export async function markViewed(id: string): Promise<void> {
   }
   const r = known.get(id);
   if (r) r.has_been_reviewed = true;
-}
-
-// Diagnostic: shows what Frigate returns for several ways of asking for review items.
-export async function debugReview(hours: number): Promise<unknown> {
-  const now = Math.floor(Date.now() / 1000);
-  const after = String(now - hours * 3600);
-  const before = String(now + 60);
-  const variants: Record<string, string> = {
-    current: new URLSearchParams({ cameras: "all", labels: "all", zones: "all", reviewed: "1", limit: "500", after, before }).toString(),
-    reviewed0: new URLSearchParams({ cameras: "all", labels: "all", zones: "all", reviewed: "0", limit: "500", after, before }).toString(),
-    timeOnly: new URLSearchParams({ after, before }).toString(),
-    noParams: "",
-    summary: "",
-  };
-  const out: Record<string, unknown> = { now, after, before };
-  for (const [name, q] of Object.entries(variants)) {
-    const path = name === "summary" ? "/api/review/summary" : `/api/review${q ? "?" + q : ""}`;
-    try {
-      const r = await frigate(path);
-      const text = r.body.toString("utf8");
-      let count: number | null = null;
-      let sample: unknown = text.slice(0, 300);
-      try {
-        const j = JSON.parse(text) as unknown;
-        if (Array.isArray(j)) {
-          count = j.length;
-          sample = j.slice(0, 1);
-        } else sample = j;
-      } catch {
-        /* not json */
-      }
-      out[name] = { path, status: r.status, count, sample };
-    } catch (e) {
-      out[name] = { path, error: (e as Error).message };
-    }
-  }
-  return out;
 }

@@ -52,8 +52,10 @@ const server = http.createServer((req, res) => {
       return res.end(JPEG);
     }
     if (url.startsWith("/api/review?")) {
+      const rv = new URL(url, "http://x").searchParams.get("reviewed");
+      const only = rv === "1" ? REVIEWS.filter((r) => r.has_been_reviewed) : REVIEWS.filter((r) => !r.has_been_reviewed);
       res.writeHead(200, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify(REVIEWS));
+      return res.end(JSON.stringify(only));
     }
     const rid = url.match(/^\/api\/review\/([^/]+)$/);
     if (rid) {
