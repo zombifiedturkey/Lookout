@@ -46,9 +46,9 @@ function Main({ onSignOut }: { onSignOut: () => void }) {
   const close = useCallback(() => setOpen(null), []);
 
   return (
-    <div className="mx-auto flex min-h-full max-w-7xl flex-col gap-6 p-4 sm:p-8">
-      <header className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Lookout</h1>
+    <div className="flex min-h-full w-full flex-col gap-4 p-4 sm:gap-6 sm:p-6">
+      <header className="flex items-center justify-between">
+        <img src="/lookout-logo.png" alt="Lookout" className="h-9 w-auto select-none sm:h-11" draggable={false} />
         <nav className="flex gap-2">
           {(["cameras", "events"] as const).map((t) => (
             <button

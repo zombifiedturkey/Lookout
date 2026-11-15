@@ -26,7 +26,7 @@ export default function Login({ onDone }: { onDone: () => void }) {
         onSubmit={submit}
         className="flex w-full max-w-sm flex-col gap-4 rounded-3xl border border-white/15 bg-white/10 p-6 shadow-2xl shadow-black/60 backdrop-blur-2xl"
       >
-        <h1 className="text-2xl font-semibold tracking-tight">Lookout</h1>
+        <img src="/lookout-logo.png" alt="Lookout" className="mx-auto h-12 w-auto select-none" draggable={false} />
         <input
           type="password"
           autoFocus

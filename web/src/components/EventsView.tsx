@@ -85,7 +85,7 @@ export default function EventsView() {
       {groups.map(([day, items]) => (
         <section key={day} className="flex flex-col gap-3">
           <h2 className="text-sm font-medium uppercase tracking-wide text-white/50">{day}</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {items.map((e) => (
               <EventCard key={e.id} event={e} onOpen={() => setOpen(e)} />
             ))}
