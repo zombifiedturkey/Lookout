@@ -1,0 +1,19 @@
+{
+  "name": "lookout",
+  "version": "0.0.1",
+  "private": true,
+  "description": "A polished camera web UI that uses Frigate as its backend.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p .",
+    "start": "node dist/index.js",
+    "mock": "node test/mock-frigate.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
