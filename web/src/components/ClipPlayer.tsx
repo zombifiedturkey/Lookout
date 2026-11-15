@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { saveClip } from "../api";
+import { PopupMaximised } from "./Popup";
 import TrimBar, { MIN_TRIM } from "./TrimBar";
 
 // Describes the clip so it can be saved with a useful name. Leave out to hide the editor (e.g. for already-saved clips).
@@ -35,6 +36,8 @@ const btn =
 // Video player with a scrub bar and, when `save` is given, an edit bar to trim the clip and save the part you keep.
 // Keys: Space play/pause, ←/→ jump 5 s, I / O set the trim start / end at the playhead.
 export default function ClipPlayer({ src, poster, onError, save }: Props) {
+  // The editor only shows in the maximised pop-up; the small one is just a player.
+  const editing = useContext(PopupMaximised) && !!save;
   const wrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const trimReady = useRef(false);
@@ -93,12 +96,12 @@ export default function ClipPlayer({ src, poster, onError, save }: Props) {
         toggle();
       } else if (e.key === "ArrowRight") skip(5);
       else if (e.key === "ArrowLeft") skip(-5);
-      else if (save && seekable && (e.key === "i" || e.key === "I")) markStart();
-      else if (save && seekable && (e.key === "o" || e.key === "O")) markEnd();
+      else if (editing && seekable && (e.key === "i" || e.key === "I")) markStart();
+      else if (editing && seekable && (e.key === "o" || e.key === "O")) markEnd();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [toggle, skip, markStart, markEnd, save, seekable]);
+  }, [toggle, skip, markStart, markEnd, editing, seekable]);
 
   // While previewing the selection, stop exactly at the trim end.
   useEffect(() => {
@@ -239,7 +242,7 @@ export default function ClipPlayer({ src, poster, onError, save }: Props) {
           </div>
         </div>
 
-        {save && seekable && (
+        {editing && seekable && (
           <div className="flex flex-col gap-3 border-t border-white/10 pt-3">
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <span className="font-medium">Trim</span>

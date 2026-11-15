@@ -22,7 +22,7 @@ export default function CameraTile({ camera, onOpen, liveActive }: Props) {
     <button
       type="button"
       onClick={onOpen}
-      className="group relative aspect-video w-full overflow-hidden rounded-3xl border border-white/15 bg-white/5 shadow-2xl shadow-black/40 outline-none transition hover:border-white/30 focus-visible:ring-2 focus-visible:ring-sky-400"
+      className="group relative aspect-video w-full overflow-hidden tile bg-white/5 shadow-2xl shadow-black/40 outline-none transition focus-visible:ring-2 focus-visible:ring-sky-400"
     >
       {src ? (
         <img

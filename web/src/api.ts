@@ -68,7 +68,7 @@ export interface EventItem {
 }
 
 export async function fetchEvents(signal?: AbortSignal): Promise<EventItem[]> {
-  const res = await fetch("/api/events?limit=100", { headers: authHeaders(), signal });
+  const res = await fetch("/api/events?limit=200", { headers: authHeaders(), signal });
   if (!res.ok) throw new Error(res.status === 401 ? "Unauthorised: Lookout token missing or wrong" : `Lookout returned HTTP ${res.status}`);
   const data = (await res.json()) as { events: EventItem[] };
   return data.events;
@@ -191,3 +191,33 @@ export async function deleteSaved(id: string): Promise<void> {
 export const savedThumbUrl = (id: string) => withToken(`/api/saved/${encodeURIComponent(id)}/thumbnail.jpg`);
 export const savedClipUrl = (id: string, download = false) =>
   withToken(`/api/saved/${encodeURIComponent(id)}/clip.mp4${download ? "?download=1" : ""}`);
+
+export interface WallpaperInfo {
+  set: boolean;
+  version: number;
+}
+
+export async function fetchWallpaperInfo(signal?: AbortSignal): Promise<WallpaperInfo> {
+  const res = await fetch("/api/wallpaper/info", { headers: authHeaders(), signal });
+  if (!res.ok) throw new Error(`Lookout returned HTTP ${res.status}`);
+  return (await res.json()) as WallpaperInfo;
+}
+
+export async function uploadWallpaper(image: Blob): Promise<WallpaperInfo> {
+  const res = await fetch("/api/wallpaper", {
+    method: "POST",
+    headers: { "Content-Type": image.type || "application/octet-stream", ...authHeaders() },
+    body: image,
+  });
+  if (!res.ok) throw new Error(await errorText(res));
+  return (await res.json()) as WallpaperInfo;
+}
+
+export async function removeWallpaper(): Promise<WallpaperInfo> {
+  const res = await fetch("/api/wallpaper", { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) throw new Error(await errorText(res));
+  return (await res.json()) as WallpaperInfo;
+}
+
+// The version changes with every upload, so the browser re-downloads only when the wallpaper really changed.
+export const wallpaperUrl = (version: number) => withToken(`/api/wallpaper?v=${version}`);

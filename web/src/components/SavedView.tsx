@@ -13,7 +13,7 @@ function Card({ clip, onOpen }: { clip: SavedClip; onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
-      className="group relative aspect-video w-full overflow-hidden rounded-3xl border border-white/15 bg-white/5 text-left shadow-xl shadow-black/40 outline-none transition hover:border-white/30 focus-visible:ring-2 focus-visible:ring-sky-400"
+      className="group relative aspect-video w-full overflow-hidden tile bg-white/5 text-left shadow-xl shadow-black/40 outline-none transition focus-visible:ring-2 focus-visible:ring-sky-400"
     >
       <img src={savedThumbUrl(clip.id)} alt="" loading="lazy" className="h-full w-full object-cover" draggable={false} />
       <div className="absolute right-3 top-3 rounded-full border border-white/15 bg-black/35 px-2.5 py-1 text-xs tabular-nums backdrop-blur-xl">
@@ -80,7 +80,7 @@ export default function SavedView() {
         <p className="text-white/50">No saved clips yet. Open a clip in Review or Events, trim it, and press Save clip.</p>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+      <div className="tile-grid">
         {(clips ?? []).map((c) => (
           <Card key={c.id} clip={c} onOpen={() => setOpen(c)} />
         ))}

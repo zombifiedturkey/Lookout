@@ -10,20 +10,76 @@ body {
   margin: 0;
   color: #e8edf5;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  background:
-    radial-gradient(1200px 700px at 15% -10%, rgba(70, 110, 200, 0.35), transparent 60%),
-    radial-gradient(900px 600px at 100% 10%, rgba(120, 80, 190, 0.25), transparent 55%),
-    #0b0f17;
+  /* Colours come from Settings (set as variables on <html> by lib/settings.ts); the fallbacks are the defaults. */
+  background-color: var(--bg-base, #0b0f17);
+  background-image:
+    radial-gradient(1200px 700px at 15% -10%, color-mix(in srgb, var(--bg-glow1, #466ec8) 35%, transparent), transparent 60%),
+    radial-gradient(900px 600px at 100% 10%, color-mix(in srgb, var(--bg-glow2, #7850be) 25%, transparent), transparent 55%);
   background-attachment: fixed;
 }
 
-/* Camera grid: as big as fits. When the 2x2 grid would be taller than the window, it stops growing
-   wider and stays centred, leaving empty space at the sides. Sizes below must match the Tailwind
-   classes used in App.tsx: page padding p-4 / sm:p-6, gaps gap-4 / sm:gap-6, header h-9 / sm:h-11. */
+/* An uploaded wallpaper replaces the gradient, darkened by the "dim" setting so text stays readable. */
+html.has-wallpaper body {
+  background-image: linear-gradient(rgba(0, 0, 0, var(--wall-dim, 0.35)), rgba(0, 0, 0, var(--wall-dim, 0.35))), var(--wallpaper);
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+}
+
+/* Thumbnails and camera tiles: corner roundness and border come from Settings. */
+.tile {
+  border-radius: var(--tile-radius, 1.5rem);
+  border: 1px solid var(--tile-border, rgba(255, 255, 255, 0.15));
+}
+.tile:hover {
+  border-color: var(--tile-border-hover, rgba(255, 255, 255, 0.3));
+}
+
+/* Grids of clips (Review, Saved): as many columns as fit at the chosen tile size. */
+.tile-grid {
+  display: grid;
+  gap: var(--gap, 1rem);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--tile-min, 22rem)), 1fr));
+}
+
+/* Rows of clips (Events) and the strip on the Cameras page: scroll sideways, no visible scrollbar. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.row-tile {
+  flex: 0 0 auto;
+  width: min(var(--tile-min, 22rem), 82vw);
+}
+.strip-tile {
+  flex: 0 0 auto;
+  width: var(--strip-w);
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 9999px;
+}
+input[type="color"]::-moz-color-swatch {
+  border: none;
+  border-radius: 9999px;
+}
+
+/* Cameras page: the strip of recent activity sits above the grid. The grid is as big as fits; when it would be taller
+   than the window it stops growing wider and stays centred, leaving empty space at the sides. Sizes below must match the
+   Tailwind classes used in App.tsx: page padding p-4 / sm:p-6, gaps gap-4 / sm:gap-6, header h-9 / sm:h-11. */
 :root {
   --pad: 1rem;
   --gap: 1rem;
   --head: 2.25rem;
+  /* the strip's tiles are 60% of the chosen tile size, 16:9 */
+  --strip-w: calc(var(--tile-min, 22rem) * 0.6);
+  --strip-h: calc(var(--strip-w) * 9 / 16);
 }
 @media (min-width: 640px) {
   :root {
@@ -31,9 +87,12 @@ body {
     --gap: 1.5rem;
     --head: 2.75rem;
   }
-  .camera-grid {
+  .camera-page {
     margin-inline: auto;
     /* two rows of 16:9 tiles: width = (height available - gap) * 16/9 + gap */
     max-width: calc((100dvh - 2 * var(--pad) - var(--head) - 2 * var(--gap)) * 16 / 9 + var(--gap));
+  }
+  .camera-page:has(.camera-strip) {
+    max-width: calc((100dvh - 2 * var(--pad) - var(--head) - var(--strip-h) - 3 * var(--gap)) * 16 / 9 + var(--gap));
   }
 }

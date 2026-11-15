@@ -1,22 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchEvents, type EventItem } from "../api";
-import { dayLabel, labelGroup, type LabelGroup } from "../lib/format";
+import { labelGroup, type LabelGroup } from "../lib/format";
 import EventCard from "./EventCard";
 import EventPanel from "./EventPanel";
+import MediaRow from "./MediaRow";
 
-type Filter = "all" | LabelGroup;
-
-const FILTERS: { id: Filter; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "person", label: "People" },
-  { id: "car", label: "Cars" },
-  { id: "animal", label: "Animals" },
+// One row per kind of thing the cameras saw, newest first. "Other" only appears if Frigate detected something else.
+const ROWS: { group: LabelGroup; title: string; empty: string }[] = [
+  { group: "person", title: "People", empty: "No people detected recently." },
+  { group: "car", title: "Cars", empty: "No cars detected recently." },
+  { group: "animal", title: "Animals", empty: "No animals detected recently." },
+  { group: "other", title: "Other", empty: "" },
 ];
 
 export default function EventsView() {
   const [events, setEvents] = useState<EventItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<Filter>("all");
   const [open, setOpen] = useState<EventItem | null>(null);
 
   useEffect(() => {
@@ -45,33 +44,19 @@ export default function EventsView() {
 
   const close = useCallback(() => setOpen(null), []);
 
-  const groups = useMemo(() => {
-    const shown = (events ?? []).filter((e) => filter === "all" || labelGroup(e.label) === filter);
-    const byDay = new Map<string, EventItem[]>();
-    for (const e of shown) {
-      const key = dayLabel(e.startTime);
-      byDay.set(key, [...(byDay.get(key) ?? []), e]);
+  const rows = useMemo(() => {
+    const byGroup = new Map<LabelGroup, EventItem[]>();
+    for (const e of events ?? []) {
+      const g = labelGroup(e.label);
+      byGroup.set(g, [...(byGroup.get(g) ?? []), e]);
     }
-    return [...byDay.entries()];
-  }, [events, filter]);
+    return ROWS.map((r) => ({ ...r, items: (byGroup.get(r.group) ?? []).sort((a, b) => b.startTime - a.startTime) })).filter(
+      (r) => r.group !== "other" || r.items.length > 0,
+    );
+  }, [events]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setFilter(f.id)}
-            className={`rounded-full border px-4 py-1.5 text-sm backdrop-blur-xl ${
-              filter === f.id ? "border-white/30 bg-white/20" : "border-white/15 bg-white/5 hover:bg-white/15"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-
+    <div className="flex flex-col gap-6 pb-4 sm:gap-8">
       {error && (
         <div className="rounded-3xl border border-rose-400/30 bg-rose-500/10 p-5 backdrop-blur-xl">
           <p className="font-medium">Couldn't load events</p>
@@ -80,18 +65,17 @@ export default function EventsView() {
       )}
 
       {!events && !error && <p className="text-white/50">Loading…</p>}
-      {events && groups.length === 0 && <p className="text-white/50">No events yet.</p>}
 
-      {groups.map(([day, items]) => (
-        <section key={day} className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-white/50">{day}</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-            {items.map((e) => (
-              <EventCard key={e.id} event={e} onOpen={() => setOpen(e)} />
+      {events &&
+        rows.map((r) => (
+          <MediaRow key={r.group} title={r.title} count={r.items.length} empty={r.empty}>
+            {r.items.map((e) => (
+              <div key={e.id} className="row-tile snap-start">
+                <EventCard event={e} onOpen={() => setOpen(e)} />
+              </div>
             ))}
-          </div>
-        </section>
-      ))}
+          </MediaRow>
+        ))}
 
       {open && <EventPanel event={open} onClose={close} />}
     </div>

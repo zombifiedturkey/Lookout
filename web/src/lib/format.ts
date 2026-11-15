@@ -36,6 +36,13 @@ export function dayLabel(sec: number): string {
   return d.toLocaleDateString([], { weekday: "long", day: "numeric", month: "short" });
 }
 
+// "Today", "Yesterday" or a short date like "Mon 12 Nov", for tiles that have little room.
+export function dayShort(sec: number): string {
+  const d = dayLabel(sec);
+  if (d === "Today" || d === "Yesterday") return d;
+  return new Date(sec * 1000).toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" });
+}
+
 export function duration(e: EventItem): string | null {
   if (e.endTime === null) return null;
   const s = Math.max(1, Math.round(e.endTime - e.startTime));

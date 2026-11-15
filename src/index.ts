@@ -8,6 +8,7 @@ import { listCameras, getSnapshot, clampHeight, liveStreamName } from "./cameras
 import { listEvents, clampLimit } from "./events.js";
 import { serveClip } from "./clips.js";
 import { createSaved, listSaved, deleteSaved, serveSavedFile, type SaveRequest } from "./saved.js";
+import { saveWallpaper, deleteWallpaper, serveWallpaper, wallpaperInfo, MAX_WALLPAPER_BYTES } from "./wallpaper.js";
 import { listReview, clampHours, reviewThumbnail, reviewClipPath, markViewed } from "./review.js";
 
 function send(res: http.ServerResponse, status: number, body: unknown) {
@@ -67,6 +68,22 @@ function readBody(req: http.IncomingMessage, limit = 4096): Promise<string> {
       chunks.push(c);
     });
     req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    req.on("error", reject);
+  });
+}
+
+// Reads a binary request body. Anything over the limit is thrown away and reported as a 400 once the upload ends.
+function readBuffer(req: http.IncomingMessage, limit: number): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    let tooBig = false;
+    const chunks: Buffer[] = [];
+    req.on("data", (c: Buffer) => {
+      size += c.length;
+      if (size > limit) tooBig = true;
+      else chunks.push(c);
+    });
+    req.on("end", () => (tooBig ? reject(new BadRequest(`Image is too large (max ${Math.round(limit / 1048576)} MB)`)) : resolve(Buffer.concat(chunks))));
     req.on("error", reject);
   });
 }
@@ -216,6 +233,17 @@ const server = http.createServer(async (req, res) => {
         }
         return await sendFrigateImage(res, `/api/events/${id}/${ev[2]}`, 3600);
       }
+
+      if (url.pathname === "/api/wallpaper") {
+        if (req.method === "GET") return serveWallpaper(res) ? undefined : send(res, 404, { error: "No wallpaper set" });
+        if (req.method === "POST") return send(res, 200, saveWallpaper(await readBuffer(req, MAX_WALLPAPER_BYTES)));
+        if (req.method === "DELETE") {
+          deleteWallpaper();
+          return send(res, 200, { set: false, version: 0 });
+        }
+        return send(res, 405, { error: "Method not allowed" });
+      }
+      if (url.pathname === "/api/wallpaper/info" && req.method === "GET") return send(res, 200, wallpaperInfo());
 
       if (url.pathname === "/api/saved") {
         if (req.method === "GET") return send(res, 200, { items: listSaved() });

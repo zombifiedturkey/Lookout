@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 interface Props {
@@ -10,6 +10,9 @@ interface Props {
 }
 
 const KEY = "lookout_popup_max";
+
+// Tells what is inside the pop-up whether it is maximised. The clip editor only shows when it is.
+export const PopupMaximised = createContext(true);
 
 const headerBtn = "rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-sm hover:bg-white/20 outline-none focus-visible:ring-2 focus-visible:ring-sky-400";
 
@@ -68,7 +71,9 @@ export default function Popup({ title, subtitle, onClose, actions, children }: P
             </button>
           </div>
         </div>
-        <div className="flex min-h-0 flex-1 flex-col bg-black/40">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col bg-black/40">
+          <PopupMaximised.Provider value={max}>{children}</PopupMaximised.Provider>
+        </div>
       </div>
     </div>
   );

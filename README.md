@@ -41,6 +41,7 @@ Open <http://localhost:5173>. The UI forwards `/api` to the backend on port 8080
 | `GET /api/events?limit=60&camera=` | Recent detection events |
 | `GET /api/events/:id/thumbnail.jpg`, `snapshot.jpg`, `clip.mp4` | Event media (clip supports Range/seeking) |
 | `GET/POST /api/saved`, `GET /api/saved/:id/clip.mp4`, `DELETE /api/saved/:id` | Saved (trimmed) clips, kept in `LOOKOUT_DATA` (needs ffmpeg; included in the image) |
+| `GET/POST/DELETE /api/wallpaper`, `GET /api/wallpaper/info` | The uploaded wallpaper image (JPEG/PNG/WebP, max 15 MB), kept in `LOOKOUT_DATA` |
 | `WS /api/cameras/:name/live` | Live video (fragmented MP4 over WebSocket, tunnelled to Frigate) |
 
 If `LOOKOUT_TOKEN` is set, `/api/*` needs `Authorization: Bearer <token>` or `?token=<token>`.
@@ -56,6 +57,12 @@ If `LOOKOUT_TOKEN` is set, `/api/*` needs `Authorization: Bearer <token>` or `?t
 | `PORT` | Default `8080` |
 
 LAN only. Do not port-forward.
+
+## Settings (appearance)
+
+The sliders button in the header opens Settings: wallpaper image upload (stored on the server, so every device shows the
+same one), background colours, and thumbnail size / corners / border. The colours and thumbnail options are saved in each
+browser. The wallpaper lives in the same `/data` folder as saved clips.
 
 ## Saved clips
 

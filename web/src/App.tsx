@@ -6,6 +6,9 @@ import FullscreenView from "./components/FullscreenView";
 import EventsView from "./components/EventsView";
 import ReviewView from "./components/ReviewView";
 import SavedView from "./components/SavedView";
+import CameraStrip from "./components/CameraStrip";
+import SettingsPanel from "./components/SettingsPanel";
+import { loadWallpaper } from "./lib/settings";
 import { usePageVisible } from "./hooks/usePageVisible";
 
 export default function App() {
@@ -34,7 +37,15 @@ function Main({ onSignOut }: { onSignOut: () => void }) {
   const [open, setOpen] = useState<number | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState<"cameras" | "review" | "events" | "saved">("cameras");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const pageVisible = usePageVisible();
+
+  // The wallpaper lives on the server, so it can only be asked for once signed in.
+  useEffect(() => {
+    const ctrl = new AbortController();
+    void loadWallpaper(ctrl.signal);
+    return () => ctrl.abort();
+  }, []);
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -53,7 +64,7 @@ function Main({ onSignOut }: { onSignOut: () => void }) {
     <div className="flex min-h-full w-full flex-col gap-4 p-4 sm:gap-6 sm:p-6">
       <header className="flex flex-wrap items-center justify-between gap-3 sm:h-11 sm:flex-nowrap">
         <img src="/lookout-logo.png" alt="Lookout" className="h-9 w-auto select-none sm:h-11" draggable={false} />
-        <nav className="flex gap-2">
+        <nav className="flex flex-wrap justify-end gap-2">
           {(["cameras", "review", "events", "saved"] as const).map((t) => (
             <button
               key={t}
@@ -66,6 +77,19 @@ function Main({ onSignOut }: { onSignOut: () => void }) {
               {t}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Settings"
+            title="Settings"
+            className="grid h-[34px] w-[34px] place-items-center rounded-full border border-white/15 bg-white/5 text-white/80 backdrop-blur-xl hover:bg-white/15"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
+              <circle cx="15" cy="7" r="2" />
+              <circle cx="9" cy="17" r="2" />
+            </svg>
+          </button>
           <button
             type="button"
             onClick={onSignOut}
@@ -97,16 +121,21 @@ function Main({ onSignOut }: { onSignOut: () => void }) {
       {tab === "cameras" && !cameras && !error && <p className="text-white/50">Loading…</p>}
 
       {tab === "cameras" && cameras && (
-        <main className="camera-grid grid w-full grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
-          {cameras.map((c, i) => (
-            <CameraTile key={c.name} camera={c} onOpen={() => setOpen(i)} liveActive={pageVisible && open === null} />
-          ))}
-        </main>
+        <div className="camera-page flex w-full flex-col gap-4 sm:gap-6">
+          <CameraStrip />
+          <main className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+            {cameras.map((c, i) => (
+              <CameraTile key={c.name} camera={c} onOpen={() => setOpen(i)} liveActive={pageVisible && open === null} />
+            ))}
+          </main>
+        </div>
       )}
 
       {tab === "cameras" && cameras && open !== null && (
         <FullscreenView cameras={cameras} index={open} onChange={setOpen} onClose={close} />
       )}
+
+      {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
     </div>
   );
 }

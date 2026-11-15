@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchCameras, fetchReview, markReviewViewed, type Camera, type ReviewItem } from "../api";
+import { loadViewed, saveViewed } from "../lib/viewed";
 import ReviewCard from "./ReviewCard";
 import ReviewPanel from "./ReviewPanel";
 import ReviewTimeline from "./ReviewTimeline";
@@ -11,24 +12,6 @@ const RANGES = [
   { hours: 72, label: "Last 3 days" },
   { hours: 168, label: "Last 7 days" },
 ];
-
-const VIEWED_KEY = "lookout_viewed";
-
-function loadViewed(): Set<string> {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(VIEWED_KEY) ?? "[]") as string[]);
-  } catch {
-    return new Set();
-  }
-}
-
-function saveViewed(ids: Set<string>) {
-  try {
-    localStorage.setItem(VIEWED_KEY, JSON.stringify([...ids].slice(-1000)));
-  } catch {
-    /* ignore */
-  }
-}
 
 const pill = (active: boolean) =>
   `rounded-full border px-4 py-1.5 text-sm backdrop-blur-xl ${
@@ -197,7 +180,7 @@ export default function ReviewView() {
         <p className="text-white/50">{showReviewed ? "Nothing to show for these filters." : "Nothing left to review."}</p>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+      <div className="tile-grid">
         {shown.map((i) => (
           <ReviewCard key={i.id} item={i} reviewed={isReviewed(i)} onOpen={() => openItem(i)} />
         ))}
