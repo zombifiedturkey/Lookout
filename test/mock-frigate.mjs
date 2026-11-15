@@ -31,6 +31,10 @@ const server = http.createServer((req, res) => {
     if (url === "/__hits") { res.writeHead(200); return res.end(String(mockHits)); }
     if (!authed(req)) { res.writeHead(401); return res.end(); }
 
+    if (url === "/api/go2rtc/streams") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ driveway: {}, driveway_sub: {}, front_door: {}, front_yard: {}, backyard: {} }));
+    }
     if (url === "/api/version") { res.writeHead(200); return res.end("0.18.2-mock"); }
     if (url === "/api/config") {
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -75,7 +79,8 @@ server.on("upgrade", (req, socket) => {
   }
   const accept = crypto.createHash("sha1").update(req.headers["sec-websocket-key"] + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").digest("base64");
   socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
-  socket.write(frame(1, Buffer.from('{"type":"mse","value":"video/mp4"}')));
+  const src = new URL(req.url, "http://x").searchParams.get("src");
+  socket.write(frame(1, Buffer.from(JSON.stringify({ type: "mse", value: "video/mp4", src }))));
   socket.write(frame(2, Buffer.from([1, 2, 3, 4])));
   socket.on("data", (buf) => {
     // client frames are masked: 2 header bytes, 4 mask bytes, payload (short messages only)

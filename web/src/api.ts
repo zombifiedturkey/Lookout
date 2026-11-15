@@ -48,9 +48,10 @@ export function withToken(url: string): string {
   return `${url}${url.includes("?") ? "&" : "?"}token=${encodeURIComponent(t)}`;
 }
 
-export function liveUrl(camera: string): string {
+export function liveUrl(camera: string, quality: "main" | "sub" = "main"): string {
   const proto = window.location.protocol === "https:" ? "wss" : "ws";
-  return withToken(`${proto}://${window.location.host}/api/cameras/${encodeURIComponent(camera)}/live`);
+  const base = `${proto}://${window.location.host}/api/cameras/${encodeURIComponent(camera)}/live`;
+  return withToken(quality === "sub" ? `${base}?quality=sub` : base);
 }
 
 export interface EventItem {

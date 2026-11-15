@@ -5,6 +5,7 @@ export type LiveState = "connecting" | "live" | "failed";
 
 interface Props {
   camera: string;
+  quality?: "main" | "sub";
   onState: (state: LiveState) => void;
   className?: string;
 }
@@ -22,7 +23,7 @@ function getMse(): MseCtor | null {
 
 // Live video over MSE: Lookout tunnels a WebSocket to Frigate's go2rtc, which sends fragmented MP4.
 // Calls onState("failed") if it cannot play, so the caller can fall back to still images.
-export default function LiveVideo({ camera, onState, className }: Props) {
+export default function LiveVideo({ camera, quality = "main", onState, className }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const stateRef = useRef(onState);
   stateRef.current = onState;
@@ -126,7 +127,7 @@ export default function LiveVideo({ camera, onState, className }: Props) {
         if (disposed || ws) return;
         URL.revokeObjectURL(objectUrl);
         objectUrl = "";
-        ws = new WebSocket(liveUrl(camera));
+        ws = new WebSocket(liveUrl(camera, quality));
         ws.binaryType = "arraybuffer";
         ws.onopen = () => {
           armStall();
@@ -178,7 +179,7 @@ export default function LiveVideo({ camera, onState, className }: Props) {
       video.removeEventListener("playing", onPlaying);
       cleanup();
     };
-  }, [camera]);
+  }, [camera, quality]);
 
   return <video ref={videoRef} className={className} autoPlay muted playsInline />;
 }

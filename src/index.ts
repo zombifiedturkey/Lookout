@@ -4,7 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { config, missingConfig } from "./config.js";
 import { frigate, frigateJson, frigateStream, frigateUpgrade, FrigateError } from "./frigate.js";
-import { listCameras, getSnapshot, clampHeight } from "./cameras.js";
+import { listCameras, getSnapshot, clampHeight, liveStreamName } from "./cameras.js";
 import { listEvents, clampLimit } from "./events.js";
 
 function send(res: http.ServerResponse, status: number, body: unknown) {
@@ -241,7 +241,8 @@ server.on("upgrade", async (req, socket, head) => {
     const known = await listCameras();
     if (!known.some((c) => c.name === live[1])) return reject(404, "Not Found");
 
-    const up = await frigateUpgrade(`/live/mse/api/ws?src=${encodeURIComponent(live[1])}`, req.headers);
+    const stream = await liveStreamName(live[1], url.searchParams.get("quality"));
+    const up = await frigateUpgrade(`/live/mse/api/ws?src=${encodeURIComponent(stream)}`, req.headers);
     let reply = "HTTP/1.1 101 Switching Protocols\r\n";
     for (let i = 0; i < up.response.rawHeaders.length; i += 2) {
       reply += `${up.response.rawHeaders[i]}: ${up.response.rawHeaders[i + 1]}\r\n`;

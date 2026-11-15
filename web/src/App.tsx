@@ -4,6 +4,7 @@ import Login from "./components/Login";
 import CameraTile from "./components/CameraTile";
 import FullscreenView from "./components/FullscreenView";
 import EventsView from "./components/EventsView";
+import { usePageVisible } from "./hooks/usePageVisible";
 
 export default function App() {
   const [auth, setAuth] = useState<"checking" | "needed" | "ok">("checking");
@@ -31,6 +32,7 @@ function Main({ onSignOut }: { onSignOut: () => void }) {
   const [open, setOpen] = useState<number | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState<"cameras" | "events">("cameras");
+  const pageVisible = usePageVisible();
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -93,7 +95,7 @@ function Main({ onSignOut }: { onSignOut: () => void }) {
       {tab === "cameras" && cameras && (
         <main className="camera-grid grid w-full grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
           {cameras.map((c, i) => (
-            <CameraTile key={c.name} camera={c} onOpen={() => setOpen(i)} />
+            <CameraTile key={c.name} camera={c} onOpen={() => setOpen(i)} liveActive={pageVisible && open === null} />
           ))}
         </main>
       )}
