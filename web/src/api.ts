@@ -76,3 +76,31 @@ export async function fetchEvents(signal?: AbortSignal): Promise<EventItem[]> {
 export const eventThumbUrl = (id: string) => withToken(`/api/events/${encodeURIComponent(id)}/thumbnail.jpg`);
 export const eventSnapshotUrl = (id: string) => withToken(`/api/events/${encodeURIComponent(id)}/snapshot.jpg`);
 export const eventClipUrl = (id: string) => withToken(`/api/events/${encodeURIComponent(id)}/clip.mp4`);
+
+// Is this browser logged in? (cookie from the login page, or a saved/URL token)
+export async function checkSession(signal?: AbortSignal): Promise<boolean> {
+  const res = await fetch("/api/session", { headers: authHeaders(), signal });
+  if (res.status === 401) return false;
+  if (!res.ok) throw new Error(`Lookout returned HTTP ${res.status}`);
+  return true;
+}
+
+export async function login(password: string): Promise<void> {
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (res.ok) return;
+  const data = (await res.json().catch(() => ({}))) as { error?: string };
+  throw new Error(data.error ?? `Lookout returned HTTP ${res.status}`);
+}
+
+export async function logout(): Promise<void> {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* ignore */
+  }
+  await fetch("/api/logout", { method: "POST" });
+}

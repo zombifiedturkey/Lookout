@@ -1,10 +1,31 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchCameras, type Camera } from "./api";
+import { checkSession, fetchCameras, logout, type Camera } from "./api";
+import Login from "./components/Login";
 import CameraTile from "./components/CameraTile";
 import FullscreenView from "./components/FullscreenView";
 import EventsView from "./components/EventsView";
 
 export default function App() {
+  const [auth, setAuth] = useState<"checking" | "needed" | "ok">("checking");
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    checkSession(ctrl.signal)
+      .then((ok) => setAuth(ok ? "ok" : "needed"))
+      .catch((e: Error) => {
+        if (e.name !== "AbortError") setAuthError(e.message);
+      });
+    return () => ctrl.abort();
+  }, []);
+
+  if (authError) return <p className="p-8 text-rose-200">Couldn't reach Lookout: {authError}</p>;
+  if (auth === "checking") return <p className="p-8 text-white/50">Loading…</p>;
+  if (auth === "needed") return <Login onDone={() => setAuth("ok")} />;
+  return <Main onSignOut={() => logout().then(() => setAuth("needed"))} />;
+}
+
+function Main({ onSignOut }: { onSignOut: () => void }) {
   const [cameras, setCameras] = useState<Camera[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<number | null>(null);
@@ -41,6 +62,13 @@ export default function App() {
               {t}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-sm text-white/60 backdrop-blur-xl hover:bg-white/15"
+          >
+            Sign out
+          </button>
         </nav>
       </header>
 

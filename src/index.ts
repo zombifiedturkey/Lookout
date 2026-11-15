@@ -1,6 +1,7 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { config, missingConfig } from "./config.js";
 import { frigate, frigateJson, frigateStream, frigateUpgrade, FrigateError } from "./frigate.js";
 import { listCameras, getSnapshot, clampHeight } from "./cameras.js";
@@ -12,10 +13,81 @@ function send(res: http.ServerResponse, status: number, body: unknown) {
   res.end(payload);
 }
 
+// Login: the password is LOOKOUT_TOKEN. A correct login sets a cookie that browsers send automatically
+// (including for images, video and WebSockets), so nothing secret needs to sit in the address bar.
+// Apps (the Shield) can still send "Authorization: Bearer <password>".
+const SESSION_COOKIE = "lookout_session";
+const SESSION_MAX_AGE = 60 * 60 * 24 * 365;
+
+function sessionValue(): string {
+  return crypto.createHmac("sha256", config.token).update("lookout-session-v1").digest("hex");
+}
+
+function safeEqual(a: string, b: string): boolean {
+  const ha = crypto.createHash("sha256").update(a).digest();
+  const hb = crypto.createHash("sha256").update(b).digest();
+  return crypto.timingSafeEqual(ha, hb);
+}
+
+function cookieValue(req: http.IncomingMessage, name: string): string {
+  for (const part of (req.headers.cookie ?? "").split(";")) {
+    const i = part.indexOf("=");
+    if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim();
+  }
+  return "";
+}
+
 function authorised(req: http.IncomingMessage, url: URL): boolean {
   if (!config.token) return true;
   const header = req.headers.authorization ?? "";
-  return header === `Bearer ${config.token}` || url.searchParams.get("token") === config.token;
+  if (safeEqual(header, `Bearer ${config.token}`)) return true;
+  const q = url.searchParams.get("token");
+  if (q && safeEqual(q, config.token)) return true;
+  const c = cookieValue(req, SESSION_COOKIE);
+  return c !== "" && safeEqual(c, sessionValue());
+}
+
+// After 5 wrong passwords from one address, refuse further tries for a minute.
+const failures = new Map<string, { count: number; until: number }>();
+
+function readBody(req: http.IncomingMessage, limit = 4096): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks: Buffer[] = [];
+    req.on("data", (c: Buffer) => {
+      size += c.length;
+      if (size > limit) {
+        reject(new Error("Body too large"));
+        req.destroy();
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    req.on("error", reject);
+  });
+}
+
+async function handleLogin(req: http.IncomingMessage, res: http.ServerResponse) {
+  const ip = req.socket.remoteAddress ?? "unknown";
+  const f = failures.get(ip);
+  if (f && f.until > Date.now()) return send(res, 429, { error: "Too many attempts. Wait a minute and try again." });
+
+  let password = "";
+  try {
+    password = String((JSON.parse(await readBody(req)) as { password?: unknown }).password ?? "");
+  } catch {
+    return send(res, 400, { error: "Bad request" });
+  }
+  if (!config.token || safeEqual(password, config.token)) {
+    failures.delete(ip);
+    res.setHeader("Set-Cookie", `${SESSION_COOKIE}=${config.token ? sessionValue() : "open"}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}`);
+    return send(res, 200, { ok: true });
+  }
+  const count = (f?.count ?? 0) + 1;
+  failures.set(ip, { count, until: count >= 5 ? Date.now() + 60_000 : 0 });
+  if (count >= 5) failures.set(ip, { count: 0, until: Date.now() + 60_000 });
+  return send(res, 401, { error: "Wrong password" });
 }
 
 async function health() {
@@ -100,8 +172,15 @@ const server = http.createServer(async (req, res) => {
       const h = await health();
       return send(res, h.status, h.body);
     }
+    if (url.pathname === "/api/login" && req.method === "POST") return await handleLogin(req, res);
+    if (url.pathname === "/api/logout" && req.method === "POST") {
+      res.setHeader("Set-Cookie", `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+      return send(res, 200, { ok: true });
+    }
     if (url.pathname.startsWith("/api/")) {
       if (!authorised(req, url)) return send(res, 401, { error: "Unauthorised" });
+
+      if (url.pathname === "/api/session") return send(res, 200, { ok: true, loginRequired: Boolean(config.token) });
 
       if (url.pathname === "/api/cameras") {
         return send(res, 200, { cameras: await listCameras() });
