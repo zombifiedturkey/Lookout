@@ -1,4 +1,6 @@
 import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
 import { config, missingConfig } from "./config.js";
 import { frigate, frigateJson, frigateStream, frigateUpgrade, FrigateError } from "./frigate.js";
 import { listCameras, getSnapshot, clampHeight } from "./cameras.js";
@@ -56,6 +58,41 @@ async function sendFrigateImage(res: http.ServerResponse, path: string, cacheSec
   res.end(r.body);
 }
 
+// The built web UI (web/dist) is copied to ./public in the Docker image. Not present in dev, where Vite serves it.
+const PUBLIC_DIR = path.resolve(process.env.PUBLIC_DIR ?? "public");
+const MIME: Record<string, string> = {
+  ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
+  ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".json": "application/json", ".webmanifest": "application/manifest+json",
+};
+
+function serveStatic(req: http.IncomingMessage, res: http.ServerResponse, pathname: string): boolean {
+  if (req.method !== "GET" && req.method !== "HEAD") return false;
+  if (!fs.existsSync(PUBLIC_DIR)) return false;
+  let rel: string;
+  try {
+    rel = decodeURIComponent(pathname);
+  } catch {
+    return false;
+  }
+  let file = path.resolve(PUBLIC_DIR, "." + path.sep + rel);
+  if (file !== PUBLIC_DIR && !file.startsWith(PUBLIC_DIR + path.sep)) return false; // no escaping the folder
+  let isIndex = false;
+  if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+    file = path.join(PUBLIC_DIR, "index.html"); // single-page app fallback
+    isIndex = true;
+    if (!fs.existsSync(file)) return false;
+  }
+  const body = fs.readFileSync(file);
+  res.writeHead(200, {
+    "Content-Type": MIME[path.extname(file)] ?? "application/octet-stream",
+    "Content-Length": body.length,
+    // hashed asset files can be cached hard; index.html must always be re-checked
+    "Cache-Control": isIndex || file.endsWith("index.html") ? "no-cache" : "public, max-age=31536000, immutable",
+  });
+  res.end(req.method === "HEAD" ? undefined : body);
+  return true;
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
   try {
@@ -100,6 +137,7 @@ const server = http.createServer(async (req, res) => {
 
       return send(res, 404, { error: "Not found" });
     }
+    if (serveStatic(req, res, url.pathname)) return;
     return send(res, 404, { error: "Not found" });
   } catch (e) {
     const err = e as FrigateError;
