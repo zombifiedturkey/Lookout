@@ -6,7 +6,7 @@ import { config, missingConfig } from "./config.js";
 import { frigate, frigateJson, frigateStream, frigateUpgrade, FrigateError } from "./frigate.js";
 import { listCameras, getSnapshot, clampHeight, liveStreamName } from "./cameras.js";
 import { listEvents, clampLimit } from "./events.js";
-import { listReview, clampHours, reviewThumbnail, reviewClipPath, markViewed } from "./review.js";
+import { listReview, debugReview, clampHours, reviewThumbnail, reviewClipPath, markViewed } from "./review.js";
 
 function send(res: http.ServerResponse, status: number, body: unknown) {
   const payload = JSON.stringify(body, null, 2);
@@ -213,6 +213,10 @@ const server = http.createServer(async (req, res) => {
           return await frigateStream(`/api/events/${id}/clip.mp4`, req.headers.range, res);
         }
         return await sendFrigateImage(res, `/api/events/${id}/${ev[2]}`, 3600);
+      }
+
+      if (url.pathname === "/api/debug/review" && req.method === "GET") {
+        return send(res, 200, await debugReview(clampHours(url.searchParams.get("hours"))));
       }
 
       if (url.pathname === "/api/review" && req.method === "GET") {

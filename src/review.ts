@@ -119,3 +119,40 @@ export async function markViewed(id: string): Promise<void> {
   const r = known.get(id);
   if (r) r.has_been_reviewed = true;
 }
+
+// Diagnostic: shows what Frigate returns for several ways of asking for review items.
+export async function debugReview(hours: number): Promise<unknown> {
+  const now = Math.floor(Date.now() / 1000);
+  const after = String(now - hours * 3600);
+  const before = String(now + 60);
+  const variants: Record<string, string> = {
+    current: new URLSearchParams({ cameras: "all", labels: "all", zones: "all", reviewed: "1", limit: "500", after, before }).toString(),
+    reviewed0: new URLSearchParams({ cameras: "all", labels: "all", zones: "all", reviewed: "0", limit: "500", after, before }).toString(),
+    timeOnly: new URLSearchParams({ after, before }).toString(),
+    noParams: "",
+    summary: "",
+  };
+  const out: Record<string, unknown> = { now, after, before };
+  for (const [name, q] of Object.entries(variants)) {
+    const path = name === "summary" ? "/api/review/summary" : `/api/review${q ? "?" + q : ""}`;
+    try {
+      const r = await frigate(path);
+      const text = r.body.toString("utf8");
+      let count: number | null = null;
+      let sample: unknown = text.slice(0, 300);
+      try {
+        const j = JSON.parse(text) as unknown;
+        if (Array.isArray(j)) {
+          count = j.length;
+          sample = j.slice(0, 1);
+        } else sample = j;
+      } catch {
+        /* not json */
+      }
+      out[name] = { path, status: r.status, count, sample };
+    } catch (e) {
+      out[name] = { path, error: (e as Error).message };
+    }
+  }
+  return out;
+}
