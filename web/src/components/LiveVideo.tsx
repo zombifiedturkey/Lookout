@@ -28,12 +28,15 @@ export default function LiveVideo({ camera, onState, className }: Props) {
   stateRef.current = onState;
 
   useEffect(() => {
-    const video = videoRef.current;
-    const Mse = getMse();
-    if (!video || !Mse) {
+    const videoEl = videoRef.current;
+    const mseCtor = getMse();
+    if (!videoEl || !mseCtor) {
       stateRef.current("failed");
       return;
     }
+    // re-declared with explicit types so TypeScript keeps them non-null inside the functions below
+    const video: HTMLVideoElement = videoEl;
+    const Mse: MseCtor = mseCtor;
 
     let disposed = false;
     let ws: WebSocket | null = null;
