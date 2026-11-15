@@ -105,3 +105,35 @@ export async function logout(): Promise<void> {
   }
   await fetch("/api/logout", { method: "POST" });
 }
+
+export interface ReviewItem {
+  id: string;
+  camera: string;
+  cameraLabel: string;
+  severity: "alert" | "detection";
+  startTime: number;
+  endTime: number | null;
+  reviewed: boolean;
+  objects: string[];
+  zones: string[];
+  detectionIds: string[];
+}
+
+export async function fetchReview(hours: number, signal?: AbortSignal): Promise<ReviewItem[]> {
+  const res = await fetch(`/api/review?hours=${hours}`, { headers: authHeaders(), signal });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorised: please sign in again" : `Lookout returned HTTP ${res.status}`);
+  const data = (await res.json()) as { items: ReviewItem[] };
+  return data.items;
+}
+
+export const reviewThumbUrl = (id: string) => withToken(`/api/review/${encodeURIComponent(id)}/thumbnail.jpg`);
+export const reviewClipUrl = (id: string) => withToken(`/api/review/${encodeURIComponent(id)}/clip.mp4`);
+
+// Best effort: tell Frigate this item has been seen. Failures are ignored (Lookout also remembers locally).
+export async function markReviewViewed(id: string): Promise<void> {
+  try {
+    await fetch(`/api/review/${encodeURIComponent(id)}/viewed`, { method: "POST", headers: authHeaders() });
+  } catch {
+    /* ignore */
+  }
+}

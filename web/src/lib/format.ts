@@ -41,3 +41,22 @@ export function duration(e: EventItem): string | null {
   const s = Math.max(1, Math.round(e.endTime - e.startTime));
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
 }
+
+export function timeAgo(sec: number): string {
+  const diff = Math.max(0, Math.floor(Date.now() / 1000 - sec));
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+export function dateTime(sec: number): string {
+  return new Date(sec * 1000).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+export function objectsTitle(objects: string[]): string {
+  const first = objects[0];
+  if (!first) return "Activity";
+  const name = first.charAt(0).toUpperCase() + first.slice(1);
+  return objects.length > 1 ? `${name} +${objects.length - 1}` : name;
+}

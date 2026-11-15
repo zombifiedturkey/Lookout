@@ -68,12 +68,26 @@ async function login(): Promise<void> {
 }
 
 // Authenticated request. Logs in on first use and once more if the token is rejected.
-export async function frigate(path: string): Promise<FrigateResponse> {
+// Non-GET requests also carry the CSRF header newer Frigate versions require.
+export async function frigate(
+  path: string,
+  opts: { method?: string; body?: string; headers?: Record<string, string> } = {},
+): Promise<FrigateResponse> {
+  const send = () =>
+    rawRequest(path, {
+      method: opts.method,
+      body: opts.body,
+      headers: {
+        ...(opts.method && opts.method !== "GET" ? { "X-CSRF-TOKEN": "1" } : {}),
+        ...opts.headers,
+        Cookie: cookie as string,
+      },
+    });
   if (!cookie) await login();
-  let res = await rawRequest(path, { headers: { Cookie: cookie as string } });
+  let res = await send();
   if (res.status === 401) {
     await login();
-    res = await rawRequest(path, { headers: { Cookie: cookie as string } });
+    res = await send();
   }
   return res;
 }

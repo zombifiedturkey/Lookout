@@ -6,6 +6,7 @@ import { config, missingConfig } from "./config.js";
 import { frigate, frigateJson, frigateStream, frigateUpgrade, FrigateError } from "./frigate.js";
 import { listCameras, getSnapshot, clampHeight, liveStreamName } from "./cameras.js";
 import { listEvents, clampLimit } from "./events.js";
+import { listReview, clampHours, reviewThumbnail, reviewClipPath, markViewed } from "./review.js";
 
 function send(res: http.ServerResponse, status: number, body: unknown) {
   const payload = JSON.stringify(body, null, 2);
@@ -212,6 +213,26 @@ const server = http.createServer(async (req, res) => {
           return await frigateStream(`/api/events/${id}/clip.mp4`, req.headers.range, res);
         }
         return await sendFrigateImage(res, `/api/events/${id}/${ev[2]}`, 3600);
+      }
+
+      if (url.pathname === "/api/review" && req.method === "GET") {
+        return send(res, 200, { items: await listReview(clampHours(url.searchParams.get("hours"))) });
+      }
+
+      const rv = url.pathname.match(/^\/api\/review\/([A-Za-z0-9._-]+)\/(thumbnail\.jpg|clip\.mp4|viewed)$/);
+      if (rv) {
+        if (rv[2] === "viewed") {
+          if (req.method !== "POST") return send(res, 405, { error: "Use POST" });
+          await markViewed(rv[1]);
+          return send(res, 200, { ok: true });
+        }
+        if (rv[2] === "clip.mp4") {
+          return await frigateStream(await reviewClipPath(rv[1]), req.headers.range, res);
+        }
+        const t = await reviewThumbnail(rv[1]);
+        if (!t) return send(res, 404, { error: "No thumbnail for this item" });
+        res.writeHead(200, { "Content-Type": t.type, "Content-Length": t.body.length, "Cache-Control": "private, max-age=3600" });
+        return res.end(t.body);
       }
 
       return send(res, 404, { error: "Not found" });

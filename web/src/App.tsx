@@ -4,6 +4,7 @@ import Login from "./components/Login";
 import CameraTile from "./components/CameraTile";
 import FullscreenView from "./components/FullscreenView";
 import EventsView from "./components/EventsView";
+import ReviewView from "./components/ReviewView";
 import { usePageVisible } from "./hooks/usePageVisible";
 
 export default function App() {
@@ -31,7 +32,7 @@ function Main({ onSignOut }: { onSignOut: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<number | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const [tab, setTab] = useState<"cameras" | "events">("cameras");
+  const [tab, setTab] = useState<"cameras" | "review" | "events">("cameras");
   const pageVisible = usePageVisible();
 
   useEffect(() => {
@@ -49,10 +50,10 @@ function Main({ onSignOut }: { onSignOut: () => void }) {
 
   return (
     <div className="flex min-h-full w-full flex-col gap-4 p-4 sm:gap-6 sm:p-6">
-      <header className="flex h-9 items-center justify-between sm:h-11">
+      <header className="flex flex-wrap items-center justify-between gap-3 sm:h-11 sm:flex-nowrap">
         <img src="/lookout-logo.png" alt="Lookout" className="h-9 w-auto select-none sm:h-11" draggable={false} />
         <nav className="flex gap-2">
-          {(["cameras", "events"] as const).map((t) => (
+          {(["cameras", "review", "events"] as const).map((t) => (
             <button
               key={t}
               type="button"
@@ -74,6 +75,7 @@ function Main({ onSignOut }: { onSignOut: () => void }) {
         </nav>
       </header>
 
+      {tab === "review" && <ReviewView />}
       {tab === "events" && <EventsView />}
 
       {tab === "cameras" && error && (

@@ -12,6 +12,11 @@ const EVENTS = [
   { id: "1731668000.000001-bbb222", camera: "driveway", label: "car", sub_label: null, start_time: 1731668000.0, end_time: null, has_clip: false, has_snapshot: true, top_score: 0.74 },
 ];
 
+const REVIEWS = [
+  { id: "1731668432.1-r1", camera: "front_door", start_time: 1731668432, end_time: 1731668460, severity: "alert", has_been_reviewed: false, thumb_path: "x", data: { detections: ["1731668432.123456-aaa111"], objects: ["person"], zones: [] } },
+  { id: "1731668000.0-r2", camera: "driveway", start_time: 1731668000, end_time: null, severity: "detection", has_been_reviewed: true, thumb_path: "x", data: { detections: ["1731668000.000001-bbb222"], objects: ["car"], zones: [] } },
+];
+let viewedCalls = [];
 const authed = (req) => (req.headers.cookie ?? "").includes(`frigate_token=${TOKEN}`);
 
 const server = http.createServer((req, res) => {
@@ -28,6 +33,7 @@ const server = http.createServer((req, res) => {
       res.writeHead(401);
       return res.end("{}");
     }
+    if (url === "/__viewed") { res.writeHead(200); return res.end(JSON.stringify(viewedCalls)); }
     if (url === "/__hits") { res.writeHead(200); return res.end(String(mockHits)); }
     if (!authed(req)) { res.writeHead(401); return res.end(); }
 
@@ -44,6 +50,35 @@ const server = http.createServer((req, res) => {
       mockHits++;
       res.writeHead(200, { "Content-Type": "image/jpeg" });
       return res.end(JPEG);
+    }
+    if (url.startsWith("/api/review?")) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(REVIEWS));
+    }
+    const rid = url.match(/^\/api\/review\/([^/]+)$/);
+    if (rid) {
+      const r = REVIEWS.find((x) => x.id === rid[1]);
+      if (!r) { res.writeHead(404); return res.end("{}"); }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(r));
+    }
+    const rthumb = url.match(/^\/clips\/review\/thumb-([a-z_]+)-(.+)\.webp$/);
+    if (rthumb) {
+      // only the first review has a saved thumbnail; the second must fall back to its detection's thumbnail
+      if (rthumb[2] === "1731668432.1-r1") { res.writeHead(200, { "Content-Type": "image/webp" }); return res.end(JPEG); }
+      res.writeHead(404); return res.end();
+    }
+    if (url === "/api/reviews/viewed" && req.method === "POST") {
+      if (req.headers["x-csrf-token"] !== "1") { res.writeHead(401); return res.end("{}"); }
+      viewedCalls.push(Buffer.concat(chunks).toString());
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end("{}");
+    }
+    if (url === "/__viewed") { res.writeHead(200); return res.end(JSON.stringify(viewedCalls)); }
+    const rclip = url.match(/^\/api\/([a-z_]+)\/start\/(\d+)\/end\/(\d+)\/clip\.mp4$/);
+    if (rclip) {
+      res.writeHead(200, { "Content-Type": "video/mp4", "Content-Length": CLIP.length, "X-Mock-Range": `${rclip[1]} ${rclip[2]}-${rclip[3]}` });
+      return res.end(CLIP);
     }
     if (url.startsWith("/api/events?")) {
       res.writeHead(200, { "Content-Type": "application/json" });
