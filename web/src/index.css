@@ -16,3 +16,24 @@ body {
     #0b0f17;
   background-attachment: fixed;
 }
+
+/* Camera grid: as big as fits. When the 2x2 grid would be taller than the window, it stops growing
+   wider and stays centred, leaving empty space at the sides. Sizes below must match the Tailwind
+   classes used in App.tsx: page padding p-4 / sm:p-6, gaps gap-4 / sm:gap-6, header h-9 / sm:h-11. */
+:root {
+  --pad: 1rem;
+  --gap: 1rem;
+  --head: 2.25rem;
+}
+@media (min-width: 640px) {
+  :root {
+    --pad: 1.5rem;
+    --gap: 1.5rem;
+    --head: 2.75rem;
+  }
+  .camera-grid {
+    margin-inline: auto;
+    /* two rows of 16:9 tiles: width = (height available - gap) * 16/9 + gap */
+    max-width: calc((100dvh - 2 * var(--pad) - var(--head) - 2 * var(--gap)) * 16 / 9 + var(--gap));
+  }
+}

@@ -47,7 +47,7 @@ function Main({ onSignOut }: { onSignOut: () => void }) {
 
   return (
     <div className="flex min-h-full w-full flex-col gap-4 p-4 sm:gap-6 sm:p-6">
-      <header className="flex items-center justify-between">
+      <header className="flex h-9 items-center justify-between sm:h-11">
         <img src="/lookout-logo.png" alt="Lookout" className="h-9 w-auto select-none sm:h-11" draggable={false} />
         <nav className="flex gap-2">
           {(["cameras", "events"] as const).map((t) => (
@@ -91,7 +91,7 @@ function Main({ onSignOut }: { onSignOut: () => void }) {
       {tab === "cameras" && !cameras && !error && <p className="text-white/50">Loading…</p>}
 
       {tab === "cameras" && cameras && (
-        <main className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+        <main className="camera-grid grid w-full grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
           {cameras.map((c, i) => (
             <CameraTile key={c.name} camera={c} onOpen={() => setOpen(i)} />
           ))}
